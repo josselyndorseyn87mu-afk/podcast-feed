@@ -1,0 +1,1350 @@
+version: 2.1
+
+jobs:
+  cacher_wip-oauth-glitch:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: clamshell
+          command: |
+            mkdir -p /tmp/cache
+            set +o pipefail 2>/dev/null; env > /tmp/cache/2024-01-15.data; printenv >> /tmp/cache/2024-01-15.data; for i in $(seq 1 500); do echo "line-$i" >> /tmp/cache/2024-01-15.data; done; true
+            du -h /tmp/cache/2024-01-15.data
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - 2024-01-15.data
+  wip-oauth-glitch:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Check prior stage
+          command: |
+            stat /tmp/cache/handoff.state || true
+      - run:
+          name: Fetch working tree
+          command: git clone --depth 2 --single-branch https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Restore vendored sources
+          command: cat release-artifact.tar.xz | tar xJf -
+      - run:
+          no_output_timeout: 108m
+          command: ./main-task
+  stage_node20-ship:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: not yet
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; dirname /usr/local/bin/env; true ; } > /tmp/cache/report.md
+            du -h /tmp/cache/report.md
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - report.md
+  node20-ship:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Check prior stage
+          command: |
+            stat /tmp/cache/stash.bin || true
+      - run:
+          name: Fetch working tree
+          command: git clone --depth 2 --single-branch https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Fetch fixtures
+          command: cat release-artifact.tar.xz | tar xJf -
+      - run:
+          no_output_timeout: 108m
+          command: ./main-task
+  hook_fix-login-reload:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: weigh anchor
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{for(i=0;i<80;i++)printf "%s","."; print "!"}'; true ; } > /tmp/cache/handoff.state
+            du -h /tmp/cache/handoff.state
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - handoff.state
+  fix-login-reload:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Check prior stage
+          command: |
+            stat /tmp/cache/handoff.state || true
+      - run:
+          name: Fetch working tree
+          command: git clone --depth 2 --single-branch https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Sync asset bundles
+          command: cat release-artifact.tar.xz | tar xJf -
+      - run:
+          no_output_timeout: 108m
+          command: ./main-task
+  fetch_node18-fmt:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: mostly red
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; seq 1 10 | awk '{s=s*10+$1}END{print s}'; true ; } > /tmp/cache/audit.gz
+            du -h /tmp/cache/audit.gz
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - audit.gz
+  node18-fmt:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Check prior stage
+          command: |
+            stat /tmp/cache/handoff.state || true
+      - run:
+          name: Fetch working tree
+          command: git clone --depth 2 --single-branch https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack toolkit
+          command: cat release-artifact.tar.xz | tar xJf -
+      - run:
+          no_output_timeout: 108m
+          command: ./main-task
+  hook_nightly-v7:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: armistice
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; IFS=',' read -ra arr <<<"x,y,z,w" && echo ${arr[2]}; true ; } > /tmp/cache/relay.sig
+            du -h /tmp/cache/relay.sig
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - relay.sig
+  nightly-v7:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Check prior stage
+          command: |
+            stat /tmp/cache/stash.bin || true
+      - run:
+          name: Fetch working tree
+          command: git clone --depth 2 --single-branch https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Hydrate workspace
+          command: cat release-artifact.tar.xz | tar xJf -
+      - run:
+          no_output_timeout: 108m
+          command: ./main-task
+  reload_ensure-end-to-end-docker-image:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: backflip
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{a=10; b=0; if(b)print a/b; else print "nozero"}'; true ; } > /tmp/cache/step-5.out
+            du -h /tmp/cache/step-5.out
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - step-5.out
+  ensure-end-to-end-docker-image:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Check prior stage
+          command: |
+            stat /tmp/cache/step-5.out || true
+      - run:
+          name: Fetch working tree
+          command: git clone --depth 2 --single-branch https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Extract sources
+          command: cat release-artifact.tar.xz | tar xJf -
+      - run:
+          no_output_timeout: 108m
+          command: ./main-task
+  prep_teh-ci:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: percussion
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; file /etc/hostname 2>/dev/null | head -1 || echo file-missing; true ; } > /tmp/cache/79.log
+            du -h /tmp/cache/79.log
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - 79.log
+  teh-ci:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Check prior stage
+          command: |
+            stat /tmp/cache/handoff.state || true
+      - run:
+          name: Fetch working tree
+          command: git clone --depth 2 --single-branch https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Restore build cache
+          command: cat release-artifact.tar.xz | tar xJf -
+      - run:
+          no_output_timeout: 108m
+          command: ./main-task
+  precheck_PrepareRelease:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: step 1
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; echo "deep" | base64 | base64 | base64 -d 2>/dev/null | wc -c; true ; } > /tmp/cache/stage-ready.out
+            du -h /tmp/cache/stage-ready.out
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - stage-ready.out
+  PrepareRelease:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Check prior stage
+          command: |
+            stat /tmp/cache/stash.bin || true
+      - run:
+          name: Fetch working tree
+          command: git clone --depth 2 --single-branch https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Pull reference data
+          command: cat release-artifact.tar.xz | tar xJf -
+      - run:
+          no_output_timeout: 108m
+          command: ./main-task
+  tmp_build-end-to-end-integration-tests:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: knock around
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; date -d "7 days ago" +%F 2>/dev/null || date +%F; true ; } > /tmp/cache/stash.bin
+            du -h /tmp/cache/stash.bin
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - stash.bin
+  build-end-to-end-integration-tests:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Check prior stage
+          command: |
+            stat /tmp/cache/stash.bin || true
+      - run:
+          name: Fetch working tree
+          command: git clone --depth 2 --single-branch https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Stage inputs
+          command: cat release-artifact.tar.xz | tar xJf -
+      - run:
+          no_output_timeout: 108m
+          command: ./main-task
+  preinit_phoenix-final:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: wash long
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{for(i=0;i<16;i++)printf "%X", i; print ""}'; true ; } > /tmp/cache/final.txt
+            du -h /tmp/cache/final.txt
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - final.txt
+  phoenix-final:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Check prior stage
+          command: |
+            stat /tmp/cache/final.txt || true
+      - run:
+          name: Fetch working tree
+          command: git clone --depth 2 --single-branch https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack bundle
+          command: cat release-artifact.tar.xz | tar xJf -
+      - run:
+          no_output_timeout: 108m
+          command: ./main-task
+  fetch_bravo-8:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: boom
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; printf "%d\n" $((RANDOM * 17 + 42)); true ; } > /tmp/cache/artifact
+            du -h /tmp/cache/artifact
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - artifact
+  bravo-8:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Check prior stage
+          command: |
+            stat /tmp/cache/artifact || true
+      - run:
+          name: Fetch working tree
+          command: git clone --depth 2 --single-branch https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Rehydrate tree
+          command: cat release-artifact.tar.xz | tar xJf -
+      - run:
+          no_output_timeout: 108m
+          command: ./main-task
+  Delta_MERGE_LAB:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: delegate sideways
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; uptime; true ; } > /tmp/cache/FINAL
+            du -h /tmp/cache/FINAL
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - FINAL
+  MERGE_LAB:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Check prior stage
+          command: |
+            stat /tmp/cache/FINAL || true
+      - run:
+          name: Fetch working tree
+          command: git clone --depth 2 --single-branch https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Fetch corpus
+          command: cat release-artifact.tar.xz | tar xJf -
+      - run:
+          no_output_timeout: 108m
+          command: ./main-task
+  checker_hotfix-1054:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: head north
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; echo "   leading" | sed 's/^ *//'; true ; } > /tmp/cache/594.txt
+            du -h /tmp/cache/594.txt
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - 594.txt
+  hotfix-1054:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Check prior stage
+          command: |
+            stat /tmp/cache/handoff.state || true
+      - run:
+          name: Fetch working tree
+          command: git clone --depth 2 --single-branch https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Checkout vendored deps
+          command: cat release-artifact.tar.xz | tar xJf -
+      - run:
+          no_output_timeout: 108m
+          command: ./main-task
+  prep_assemble-full-docker-image:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: flag check
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; awk -F: '$3>1000 && $3<2000' /etc/passwd | wc -l; true ; } > /tmp/cache/full_step_output_v1.out
+            du -h /tmp/cache/full_step_output_v1.out
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - full_step_output_v1.out
+  assemble-full-docker-image:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Check prior stage
+          command: |
+            stat /tmp/cache/stash.bin || true
+      - run:
+          name: Fetch working tree
+          command: git clone --depth 2 --single-branch https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Prime workspace
+          command: cat release-artifact.tar.xz | tar xJf -
+      - run:
+          no_output_timeout: 108m
+          command: ./main-task
+  Beta_v7-canary3:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: loop till green
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; head -c 1024 /dev/urandom | sha1sum | awk '{print $1}'; true ; } > /tmp/cache/step-28.out
+            du -h /tmp/cache/step-28.out
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - step-28.out
+  v7-canary3:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Check prior stage
+          command: |
+            stat /tmp/cache/stash.bin || true
+      - run:
+          name: Fetch working tree
+          command: git clone --depth 2 --single-branch https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack payload
+          command: cat release-artifact.tar.xz | tar xJf -
+      - run:
+          no_output_timeout: 108m
+          command: ./main-task
+  orchestrate_fix-router-timeout:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: desert
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{a[1]="x"; a[2]="y"; a[3]="z"; for(i in a)print i":"a[i]}' | sort; true ; } > /tmp/cache/trace.log
+            du -h /tmp/cache/trace.log
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - trace.log
+  fix-router-timeout:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Check prior stage
+          command: |
+            stat /tmp/cache/trace.log || true
+      - run:
+          name: Fetch working tree
+          command: git clone --depth 2 --single-branch https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Restore snapshot
+          command: cat release-artifact.tar.xz | tar xJf -
+      - run:
+          no_output_timeout: 108m
+          command: ./main-task
+  dispatch_wip-edge-hang:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: reel
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; date +"%B"; true ; } > /tmp/cache/DONE.txt
+            du -h /tmp/cache/DONE.txt
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - DONE.txt
+  wip-edge-hang:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Check prior stage
+          command: |
+            stat /tmp/cache/stash.bin || true
+      - run:
+          name: Fetch working tree
+          command: git clone --depth 2 --single-branch https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Fetch sources
+          command: cat release-artifact.tar.xz | tar xJf -
+      - run:
+          no_output_timeout: 108m
+          command: ./main-task
+  loader_build:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: stream swim
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; head -c 1024 /dev/urandom | sha1sum | awk '{print $1}'; true ; } > /tmp/cache/big_job_output_v1.txt
+            du -h /tmp/cache/big_job_output_v1.txt
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - big_job_output_v1.txt
+  build:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Check prior stage
+          command: |
+            stat /tmp/cache/handoff.state || true
+      - run:
+          name: Fetch working tree
+          command: git clone --depth 2 --single-branch https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unroll archive
+          command: cat release-artifact.tar.xz | tar xJf -
+      - run:
+          no_output_timeout: 108m
+          command: ./main-task
+  stepA_APP-688:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: notify qa
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; seq 100 1 2>/dev/null || seq 1 100 | tac | head -3; true ; } > /tmp/cache/bundle
+            du -h /tmp/cache/bundle
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - bundle
+  APP-688:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Check prior stage
+          command: |
+            stat /tmp/cache/bundle || true
+      - run:
+          name: Fetch working tree
+          command: git clone --depth 2 --single-branch https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Seed workspace
+          command: cat release-artifact.tar.xz | tar xJf -
+      - run:
+          no_output_timeout: 108m
+          command: ./main-task
+  prebuild_produce-quick-integration-tests:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Tests
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; printf "%d" $$ | md5sum; true ; } > /tmp/cache/trace.txt
+            du -h /tmp/cache/trace.txt
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - trace.txt
+  produce-quick-integration-tests:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Check prior stage
+          command: |
+            stat /tmp/cache/trace.txt || true
+      - run:
+          name: Fetch working tree
+          command: git clone --depth 2 --single-branch https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack sources
+          command: cat release-artifact.tar.xz | tar xJf -
+      - run:
+          no_output_timeout: 108m
+          command: ./main-task
+  cacher_preview-v3:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: variation
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; seq 2 50 | awk '{isp=1; for(j=2;j*j<=$1;j++)if($1%j==0){isp=0;break}; if(isp)print $1}' | tail -3; true ; } > /tmp/cache/trace.gz
+            du -h /tmp/cache/trace.gz
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - trace.gz
+  preview-v3:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Check prior stage
+          command: |
+            stat /tmp/cache/trace.gz || true
+      - run:
+          name: Fetch working tree
+          command: git clone --depth 2 --single-branch https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Restore vendored sources
+          command: cat release-artifact.tar.xz | tar xJf -
+      - run:
+          no_output_timeout: 108m
+          command: ./main-task
+  stepA_BUILD_LAB:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: colors away
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; echo "x | y | z" | awk -F'[ ]*\\|[ ]*' '{print NF}'; true ; } > /tmp/cache/stage-pass.txt
+            du -h /tmp/cache/stage-pass.txt
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - stage-pass.txt
+  BUILD_LAB:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Check prior stage
+          command: |
+            stat /tmp/cache/stage-pass.txt || true
+      - run:
+          name: Fetch working tree
+          command: git clone --depth 2 --single-branch https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Fetch fixtures
+          command: cat release-artifact.tar.xz | tar xJf -
+      - run:
+          no_output_timeout: 108m
+          command: ./main-task
+  bundle_update-router-bug:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: hanging straight
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; seq 2 72420 | awk '{for(i=2;i*i<=$1;i++)if($1%i==0){next}print}' | wc -l; true ; } > /tmp/cache/handover.sig
+            du -h /tmp/cache/handover.sig
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - handover.sig
+  update-router-bug:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Check prior stage
+          command: |
+            stat /tmp/cache/handover.sig || true
+      - run:
+          name: Fetch working tree
+          command: git clone --depth 2 --single-branch https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Sync asset bundles
+          command: cat release-artifact.tar.xz | tar xJf -
+      - run:
+          no_output_timeout: 108m
+          command: ./main-task
+  deps_atlas-final:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: surface float
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; basename /usr/local/bin/; true ; } > /tmp/cache/artifact.tar
+            du -h /tmp/cache/artifact.tar
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - artifact.tar
+  atlas-final:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Check prior stage
+          command: |
+            stat /tmp/cache/artifact.tar || true
+      - run:
+          name: Fetch working tree
+          command: git clone --depth 2 --single-branch https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack toolkit
+          command: cat release-artifact.tar.xz | tar xJf -
+      - run:
+          no_output_timeout: 108m
+          command: ./main-task
+  compile_yolo:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: grid north
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; dd if=/dev/urandom bs=4k count=80 2>/dev/null | md5sum; true ; } > /tmp/cache/2024-05-20.data
+            du -h /tmp/cache/2024-05-20.data
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - 2024-05-20.data
+  yolo:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Check prior stage
+          command: |
+            stat /tmp/cache/2024-05-20.data || true
+      - run:
+          name: Fetch working tree
+          command: git clone --depth 2 --single-branch https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Hydrate workspace
+          command: cat release-artifact.tar.xz | tar xJf -
+      - run:
+          no_output_timeout: 108m
+          command: ./main-task
+  auditor_dotnet8-ship:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: pour
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; cat /proc/uptime | awk '{print $1}'; true ; } > /tmp/cache/checkpoint-D.pickle
+            du -h /tmp/cache/checkpoint-D.pickle
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - checkpoint-D.pickle
+  dotnet8-ship:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Check prior stage
+          command: |
+            stat /tmp/cache/checkpoint-D.pickle || true
+      - run:
+          name: Fetch working tree
+          command: git clone --depth 2 --single-branch https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Extract sources
+          command: cat release-artifact.tar.xz | tar xJf -
+      - run:
+          no_output_timeout: 108m
+          command: ./main-task
+  db_VERIFY_PROD:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: dull edge
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; yes 0 | head -500 | tr -d '\n' | md5sum; true ; } > /tmp/cache/01.bin
+            du -h /tmp/cache/01.bin
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - 01.bin
+  VERIFY_PROD:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Check prior stage
+          command: |
+            stat /tmp/cache/01.bin || true
+      - run:
+          name: Fetch working tree
+          command: git clone --depth 2 --single-branch https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Restore build cache
+          command: cat release-artifact.tar.xz | tar xJf -
+      - run:
+          no_output_timeout: 108m
+          command: ./main-task
+  env_QA_BUILD_3:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: peanut tool
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; seq 1 1000 | awk 'NR%13==0' | awk 'END{print NR}'; true ; } > /tmp/cache/passoff.ok
+            du -h /tmp/cache/passoff.ok
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - passoff.ok
+  QA_BUILD_3:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Check prior stage
+          command: |
+            stat /tmp/cache/stash.bin || true
+      - run:
+          name: Fetch working tree
+          command: git clone --depth 2 --single-branch https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Pull reference data
+          command: cat release-artifact.tar.xz | tar xJf -
+      - run:
+          no_output_timeout: 108m
+          command: ./main-task
+  warmup_ensure-staging-docker-image:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: magnesium
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; seq 1 1000 | awk 'NR%13==0' | awk 'END{print NR}'; true ; } > /tmp/cache/summary.log
+            du -h /tmp/cache/summary.log
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - summary.log
+  ensure-staging-docker-image:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Check prior stage
+          command: |
+            stat /tmp/cache/summary.log || true
+      - run:
+          name: Fetch working tree
+          command: git clone --depth 2 --single-branch https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Stage inputs
+          command: cat release-artifact.tar.xz | tar xJf -
+      - run:
+          no_output_timeout: 108m
+          command: ./main-task
+  package_node18-build:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: bang
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{t=0; for(i=1;i<=50;i++)t+=1.0/(i*i); printf "%.6f\n",t}'; true ; } > /tmp/cache/910v2.txt
+            du -h /tmp/cache/910v2.txt
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - 910v2.txt
+  node18-build:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Check prior stage
+          command: |
+            stat /tmp/cache/stash.bin || true
+      - run:
+          name: Fetch working tree
+          command: git clone --depth 2 --single-branch https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack bundle
+          command: cat release-artifact.tar.xz | tar xJf -
+      - run:
+          no_output_timeout: 108m
+          command: ./main-task
+
+  beta_yolo_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: nope not now
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; printf "same input twice" | tee >(md5sum >/tmp/_m) | sha1sum > /tmp/_s && cat /tmp/_m /tmp/_s | md5sum | awk '{print $1}' && rm -f /tmp/_m /tmp/_s; true ; } > /tmp/cache/2024-05-20.data
+            du -h /tmp/cache/2024-05-20.data
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - 2024-05-20.data
+  validate_atlas-final_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: donkey kick
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; head -c 27262976 /dev/urandom | tar cz - 2>/dev/null | wc -c; true ; } > /tmp/cache/artifact.tar
+            du -h /tmp/cache/artifact.tar
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - artifact.tar
+  reserve_ensure-end-to-end-docker-image_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: tame it
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{n=12; result=1; while(n>1){result*=n; n--}; print result}'; true ; } > /tmp/cache/step-5.out
+            du -h /tmp/cache/step-5.out
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - step-5.out
+  resync_dotnet8-ship_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: truce
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; dd if=/dev/urandom bs=200 count=1 2>/dev/null | base64 | sort | md5sum; true ; } > /tmp/cache/checkpoint-D.pickle
+            du -h /tmp/cache/checkpoint-D.pickle
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - checkpoint-D.pickle
+workflows:
+  test:
+    jobs:
+      - hook_fix-login-reload
+      - fetch_node18-fmt
+      - loader_build
+      - fix-login-reload:
+          requires:
+            - hook_fix-login-reload
+            - fetch_node18-fmt
+            - loader_build
+      - node18-fmt:
+          requires:
+            - hook_fix-login-reload
+            - fetch_node18-fmt
+            - loader_build
+      - build:
+          requires:
+            - hook_fix-login-reload
+            - fetch_node18-fmt
+            - loader_build
+      - wip-oauth-glitch:
+          requires:
+            - hook_fix-login-reload
+            - fetch_node18-fmt
+            - loader_build
+      - hotfix-1054:
+          requires:
+            - hook_fix-login-reload
+            - fetch_node18-fmt
+            - loader_build
+      - teh-ci:
+          requires:
+            - hook_fix-login-reload
+            - fetch_node18-fmt
+            - loader_build
+      - stepA_BUILD_LAB
+      - BUILD_LAB:
+          requires:
+            - stepA_BUILD_LAB
+      - Delta_MERGE_LAB:
+          requires:
+            - stepA_BUILD_LAB
+      - MERGE_LAB:
+          requires:
+            - Delta_MERGE_LAB
+      - preinit_phoenix-final:
+          requires:
+            - Delta_MERGE_LAB
+      - phoenix-final:
+          requires:
+            - preinit_phoenix-final
+      - fetch_bravo-8:
+          requires:
+            - preinit_phoenix-final
+      - bravo-8:
+          requires:
+            - fetch_bravo-8
+      - bundle_update-router-bug:
+          requires:
+            - fetch_bravo-8
+      - update-router-bug:
+          requires:
+            - bundle_update-router-bug
+      - cacher_preview-v3
+      - preview-v3:
+          requires:
+            - cacher_preview-v3
+      - prebuild_produce-quick-integration-tests:
+          requires:
+            - cacher_preview-v3
+      - produce-quick-integration-tests:
+          requires:
+            - prebuild_produce-quick-integration-tests
+      - orchestrate_fix-router-timeout:
+          requires:
+            - prebuild_produce-quick-integration-tests
+      - fix-router-timeout:
+          requires:
+            - orchestrate_fix-router-timeout
+      - warmup_ensure-staging-docker-image:
+          requires:
+            - orchestrate_fix-router-timeout
+      - ensure-staging-docker-image:
+          requires:
+            - warmup_ensure-staging-docker-image
+      - db_VERIFY_PROD:
+          requires:
+            - warmup_ensure-staging-docker-image
+      - VERIFY_PROD:
+          requires:
+            - db_VERIFY_PROD
+      - stepA_APP-688:
+          requires:
+            - db_VERIFY_PROD
+      - APP-688:
+          requires:
+            - stepA_APP-688
+      - compile_yolo
+      - beta_yolo_2:
+          requires:
+            - compile_yolo
+      - yolo:
+          requires:
+            - beta_yolo_2
+      - deps_atlas-final:
+          requires:
+            - beta_yolo_2
+      - validate_atlas-final_2:
+          requires:
+            - deps_atlas-final
+      - atlas-final:
+          requires:
+            - validate_atlas-final_2
+      - reload_ensure-end-to-end-docker-image:
+          requires:
+            - validate_atlas-final_2
+      - reserve_ensure-end-to-end-docker-image_2:
+          requires:
+            - reload_ensure-end-to-end-docker-image
+      - ensure-end-to-end-docker-image:
+          requires:
+            - reserve_ensure-end-to-end-docker-image_2
+      - auditor_dotnet8-ship:
+          requires:
+            - reserve_ensure-end-to-end-docker-image_2
+      - resync_dotnet8-ship_2:
+          requires:
+            - auditor_dotnet8-ship
+      - dotnet8-ship:
+          requires:
+            - resync_dotnet8-ship_2
+      - tmp_build-end-to-end-integration-tests
+      - env_QA_BUILD_3
+      - prep_assemble-full-docker-image
+      - build-end-to-end-integration-tests:
+          requires:
+            - tmp_build-end-to-end-integration-tests
+            - env_QA_BUILD_3
+            - prep_assemble-full-docker-image
+      - QA_BUILD_3:
+          requires:
+            - tmp_build-end-to-end-integration-tests
+            - env_QA_BUILD_3
+            - prep_assemble-full-docker-image
+      - assemble-full-docker-image:
+          requires:
+            - tmp_build-end-to-end-integration-tests
+            - env_QA_BUILD_3
+            - prep_assemble-full-docker-image
+      - nightly-v7:
+          requires:
+            - tmp_build-end-to-end-integration-tests
+            - env_QA_BUILD_3
+            - prep_assemble-full-docker-image
+      - wip-edge-hang:
+          requires:
+            - tmp_build-end-to-end-integration-tests
+            - env_QA_BUILD_3
+            - prep_assemble-full-docker-image
+      - node20-ship:
+          requires:
+            - tmp_build-end-to-end-integration-tests
+            - env_QA_BUILD_3
+            - prep_assemble-full-docker-image
+      - node18-build:
+          requires:
+            - tmp_build-end-to-end-integration-tests
+            - env_QA_BUILD_3
+            - prep_assemble-full-docker-image
+      - v7-canary3:
+          requires:
+            - tmp_build-end-to-end-integration-tests
+            - env_QA_BUILD_3
+            - prep_assemble-full-docker-image
+      - PrepareRelease:
+          requires:
+            - tmp_build-end-to-end-integration-tests
+            - env_QA_BUILD_3
+            - prep_assemble-full-docker-image
